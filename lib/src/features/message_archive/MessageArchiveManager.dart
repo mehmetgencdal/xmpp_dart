@@ -1,11 +1,16 @@
+import 'dart:async';
+
+import 'package:xmpp_stone/src/chat/Message.dart';
 import 'package:xmpp_stone/src/elements/forms/QueryElement.dart';
 import 'package:xmpp_stone/src/elements/forms/XElement.dart';
+import 'package:xmpp_stone/src/elements/stanzas/MessageStanza.dart';
 import 'package:xmpp_stone/src/features/servicediscovery/MAMNegotiator.dart';
+
 import '../../Connection.dart';
 import '../../data/Jid.dart';
+import '../../elements/forms/FieldElement.dart';
 import '../../elements/stanzas/AbstractStanza.dart';
 import '../../elements/stanzas/IqStanza.dart';
-import '../../elements/forms/FieldElement.dart';
 
 class MessageArchiveManager {
   static const TAG = 'MessageArchiveManager';
@@ -27,13 +32,27 @@ class MessageArchiveManager {
 
   bool? get hasExtended => MAMNegotiator.getInstance(_connection).hasExtended;
 
-  bool get isQueryByDateSupported => MAMNegotiator.getInstance(_connection).isQueryByDateSupported;
+  bool get isQueryByDateSupported =>
+      MAMNegotiator.getInstance(_connection).isQueryByDateSupported;
 
-  bool get isQueryByIdSupported => MAMNegotiator.getInstance(_connection).isQueryByIdSupported;
+  bool get isQueryByIdSupported =>
+      MAMNegotiator.getInstance(_connection).isQueryByIdSupported;
 
-  bool get isQueryByJidSupported => MAMNegotiator.getInstance(_connection).isQueryByJidSupported;
+  bool get isQueryByJidSupported =>
+      MAMNegotiator.getInstance(_connection).isQueryByJidSupported;
 
-  MessageArchiveManager(this._connection);
+  final StreamController<Message> _newMessageController =
+      StreamController.broadcast();
+
+  MessageArchiveManager(this._connection) {
+    _connection.inStanzasStream
+        .where((abstractStanza) => abstractStanza is MessageStanza)
+        .map((stanza) => stanza as MessageStanza?)
+        .listen((stanza) {
+      var message = Message.fromStanza(stanza!);
+      _newMessageController.add(message);
+    });
+  }
 
   void queryAll() {
     var iqStanza = IqStanza(AbstractStanza.getRandomId(), IqStanzaType.SET);
@@ -69,7 +88,8 @@ class MessageArchiveManager {
         x.addField(FieldElement.build(varAttr: 'end', value: endStr));
       }
       if (jid != null) {
-        x.addField(FieldElement.build(varAttr: 'with', value: jid.userAtDomain));
+        x.addField(
+            FieldElement.build(varAttr: 'with', value: jid.userAtDomain));
       }
       _connection.writeStanza(iqStanza);
     }
@@ -96,7 +116,8 @@ class MessageArchiveManager {
         x.addField(FieldElement.build(varAttr: 'afterId', value: afterId));
       }
       if (jid != null) {
-        x.addField(FieldElement.build(varAttr: 'with', value: jid.userAtDomain));
+        x.addField(
+            FieldElement.build(varAttr: 'with', value: jid.userAtDomain));
       }
       _connection.writeStanza(iqStanza);
     }

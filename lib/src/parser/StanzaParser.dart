@@ -27,19 +27,26 @@ class StanzaParser {
     if (element.name.local == 'iq') {
       stanza = IqParser.parseIqStanza(id, element);
     } else if (element.name.local == 'message') {
-      stanza = _parseMessageStanza(id, element);
+      if (isMAMStanza(element)) {
+        print('MAM STANZA FOUND ${element.toString()}');
+        stanza = _parseMAMStanza(element);
+      } else {
+        stanza = _parseMessageStanza(id, element);
+      }
     } else if (element.name.local == 'presence') {
       stanza = _parsePresenceStanza(id, element);
     }
-    var fromString = element.getAttribute('from');
-    if (fromString != null) {
-      var from = Jid.fromFullJid(fromString);
-      stanza!.fromJid = from;
-    }
-    var toString = element.getAttribute('to');
-    if (toString != null) {
-      var to = Jid.fromFullJid(toString);
-      stanza!.toJid = to;
+    if (!isMAMStanza(element)) {
+      var fromString = element.getAttribute('from');
+      if (fromString != null) {
+        var from = Jid.fromFullJid(fromString);
+        stanza!.fromJid = from;
+      }
+      var toString = element.getAttribute('to');
+      if (toString != null) {
+        var to = Jid.fromFullJid(toString);
+        stanza!.toJid = to;
+      }
     }
     element.attributes.forEach((xmlAttribute) {
       stanza!.addAttribute(
@@ -49,6 +56,80 @@ class StanzaParser {
       if (child is xml.XmlElement) stanza!.addChild(parseElement(child));
     });
     return stanza;
+  }
+
+  static bool isMAMStanza(xml.XmlElement element) {
+    return element.name.local == 'message' &&
+        element.findElements('result', namespace: 'urn:xmpp:mam:2').isNotEmpty;
+  }
+
+  static MessageStanza? _parseMAMStanza(xml.XmlElement mamStanza) {
+    final resultElements = mamStanza.findElements('result').first;
+    // Extract elements from the MAM stanza
+    final forwardedElements = resultElements.findElements('forwarded');
+    if (forwardedElements.isEmpty) {
+      print("No 'forwarded' element found in MAM stanza.");
+      return null;
+    }
+
+    final forwardedElement = forwardedElements.first;
+
+    final delayElements = forwardedElement.findElements('delay');
+    if (delayElements.isEmpty) {
+      print("No 'delay' element found in 'forwarded' element.");
+      return null;
+    }
+
+    final delayElement = delayElements.first;
+    final timestamp = delayElement.getAttribute('stamp');
+
+    final messageElements = forwardedElement.findElements('message');
+    if (messageElements.isEmpty) {
+      print("No 'message' element found in 'forwarded' element.");
+      return null;
+    }
+
+    final messageElement = messageElements.first;
+
+    final fromAttribute = messageElement.getAttribute('from');
+    if (fromAttribute == null) {
+      print("'from' attribute not found in 'message' element.");
+      return null;
+    }
+
+    final toAttribute = messageElement.getAttribute('to');
+    if (toAttribute == null) {
+      print("'to' attribute not found in 'message' element.");
+      return null;
+    }
+
+    final idAttribute = messageElement.getAttribute('id');
+    // final typeAttribute = messageElement.getAttribute('type');
+
+    final bodyElements = messageElement.findElements('body');
+    if (bodyElements.isEmpty) {
+      print("No 'body' element found in 'message' element.");
+      return null;
+    }
+    final bodyElement = bodyElements.first;
+    final body = bodyElement.innerText;
+
+    final from = Jid.fromFullJid(fromAttribute);
+    final to = Jid.fromFullJid(toAttribute);
+    final id = idAttribute ?? '';
+
+    // Create a new message stanza
+    final messageStanza = MessageStanza(id, MessageStanzaType.CHAT);
+
+    // Set the properties of the message stanza
+    messageStanza.fromJid = from;
+    messageStanza.toJid = to;
+    // messageStanza.type = MessageStanzaType.CHAT;
+    messageStanza.id = id;
+    messageStanza.body = body;
+    messageStanza.timestamp = timestamp;
+
+    return messageStanza;
   }
 
   static MessageStanza _parseMessageStanza(String? id, xml.XmlElement element) {

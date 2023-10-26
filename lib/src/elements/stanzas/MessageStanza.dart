@@ -15,7 +15,8 @@ class MessageStanza extends AbstractStanza {
   }
 
   String? get body => children
-      .firstWhereOrNull((child) => (child.name == 'body' && child.attributes.isEmpty))
+      .firstWhereOrNull(
+          (child) => (child.name == 'body' && child.attributes.isEmpty))
       ?.textValue;
 
   set body(String? value) {
@@ -36,13 +37,22 @@ class MessageStanza extends AbstractStanza {
     addChild(element);
   }
 
-  String? get thread => children
-      .firstWhereOrNull((child) => (child.name == 'thread'))
-      ?.textValue;
+  String? get thread =>
+      children.firstWhereOrNull((child) => (child.name == 'thread'))?.textValue;
 
   set thread(String? value) {
     var element = XmppElement();
     element.name = 'thread';
+    element.textValue = value;
+    addChild(element);
+  }
+
+  String? get timestamp =>
+      children.firstWhereOrNull((child) => (child.name == 'stamp'))?.textValue;
+
+  set timestamp(String? value) {
+    var element = XmppElement();
+    element.name = 'stamp';
     element.textValue = value;
     addChild(element);
   }
