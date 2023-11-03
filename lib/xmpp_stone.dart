@@ -27,6 +27,7 @@ export 'src/messages/MessageHandler.dart';
 export 'src/messages/MessagesListener.dart';
 export 'src/presence/PresenceApi.dart';
 export 'src/presence/PresenceManager.dart';
+export 'src/push_notifications/PushNotificationsManager.dart';
 export 'src/roster/Buddy.dart';
 export 'src/roster/RosterManager.dart';
 export 'src/utils/string_utils.dart';
