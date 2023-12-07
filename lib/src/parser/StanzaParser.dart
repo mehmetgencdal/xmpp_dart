@@ -28,7 +28,7 @@ class StanzaParser {
       stanza = IqParser.parseIqStanza(id, element);
     } else if (element.name.local == 'message') {
       if (isMAMStanza(element)) {
-        print('MAM STANZA FOUND ${element.toString()}');
+        // print('MAM STANZA FOUND ${element.toString()}');
         stanza = _parseMAMStanza(element);
       } else {
         stanza = _parseMessageStanza(id, element);

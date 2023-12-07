@@ -38,7 +38,7 @@ class PushNotificationsManager {
     enableElement.name = 'enable';
     enableElement.addAttribute(XmppAttribute('xmlns', 'urn:xmpp:push:0'));
     enableElement.addAttribute(XmppAttribute('jid', 'pubsub.msg.sashkas.com'));
-    enableElement.addAttribute(XmppAttribute('node', fcmToken));
+    enableElement.addAttribute(XmppAttribute('node', fcmToken.substring(0, 8)));
 
     var x = XElement.build();
     x.setType(FormType.SUBMIT);
